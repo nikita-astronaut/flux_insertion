@@ -14,6 +14,8 @@ class opt_parameters:
         self.O = np.random.uniform(-1, 1, size=(2 * self.N_sites, 2 * self.N_sites)) / 10.
         self.O = self.O + self.O.T
 
+        self.O[np.arange(2 * self.N_sites), np.arange(2 * self.N_sites)] = 0.
+
 
 
         ### nearest-neighbor hopping with PBC ###
