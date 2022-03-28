@@ -1,12 +1,12 @@
 import numpy as np
 
 class VarState:
-    def __init__(self, N_sites, H, U, Gini, Oini):
-        self.nsites = N_sites
-        self.H = H
-        self.G = Gini
-        self.O = Oini
-        self.U = U
+    def __init__(self, opt_config):
+        self.nsites = opt_config.N_sites
+        self.H = opt_config.H
+        self.G = opt_config.G.copy()
+        self.O = opt_config.O.copy()
+        self.U = opt_config.U
 
     def gradient(self):
         raise NotImplementedError
