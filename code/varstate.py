@@ -18,7 +18,7 @@ class VarState:
         alpha = np.diagonal(alpha.transpose((2, 0, 1, 3)), axis1=-1, axis2=-2)
 
         Aexp = np.zeros((2 * S, 2 * S, 2 * S, 2 * S), dtype=np.complex128)
-        Aexp[..., np.arange(2 * S), np.arange(2 * S)] = np.exp(1.0j * alpha)  # abpq
+        Aexp[..., np.arange(2 * S), np.arange(2 * S)] = np.exp(2.0j * alpha)  # abpq
 
 
         d4_id = np.tile(np.eye(2 * S)[np.newaxis, np.newaxis, ...], (2 * S, 2 * S, 1, 1))
