@@ -14,7 +14,7 @@ class VarState:
     def energy(self):
         S = self.nsites  # just for brevity
 
-        alpha = -np.subtract.outer(self.O, self.O)
+        alpha = np.subtract.outer(self.O, self.O)
         alpha = np.diagonal(alpha.transpose((2, 0, 1, 3)), axis1=-1, axis2=-2)
 
         Aexp = np.zeros((2 * S, 2 * S, 2 * S, 2 * S), dtype=np.complex128)
@@ -30,7 +30,7 @@ class VarState:
 
         Phis = Aexp @ d4_Gamma @ np.linalg.inv(d4_id - (d4_id - Aexp) @ d4_Gamma)
         Phis = np.diagonal(Phis.transpose((0, 2, 1, 3)), axis1=0, axis2=1)
-        Phis = np.diagonal(Phis, axis1=0, axis2=1).T  # abpq -> ab
+        Phis = np.diagonal(Phis, axis1=0, axis2=1)  # abpq -> ab
 
 
         exp_small = np.diagonal(Aexp.conj(), axis1=-1, axis2=-2)
