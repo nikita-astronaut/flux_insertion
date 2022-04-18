@@ -1,4 +1,6 @@
 import numpy as np
+from Derivatives import *
+from ExpectationValue import *
 
 class VarState:
     def __init__(self, opt_config):
@@ -9,7 +11,9 @@ class VarState:
         self.U = opt_config.U
 
     def gradient(self):
-        raise NotImplementedError
+        derivatives = Derivatives(self.G, self.O, self.U, self.nsites, self.H)
+        deriv_matrix = derivatives.get_gamma_potential_derivative() + derivatives.get_h1() + derivatives.get_h2()
+        return deriv_matrix
 
     def energy(self):
         S = self.nsites  # just for brevity
@@ -38,7 +42,6 @@ class VarState:
 
 
         kin_energy = np.sum(self.H * exp_small * dets * Phis)
-
 
         pot_energy = np.sum(self.G[np.arange(S), np.arange(S)] * self.G[np.arange(S) + S, np.arange(S) + S] - \
                             self.G[np.arange(S), np.arange(S) + S] * self.G[np.arange(S) + S, np.arange(S)])

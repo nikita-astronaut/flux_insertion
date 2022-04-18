@@ -2,7 +2,7 @@ import numpy as np
 
 class opt_parameters:
     def __init__(self):
-        self.N_sites = 20
+        self.N_sites = 5
 
 
         ### initialize random starting G ###
@@ -30,8 +30,7 @@ class opt_parameters:
         self.H = self.H + self.H.T
 
 
-
-        self.n_opt = 1000
+        self.n_opt = 10
         self.lr = 1e-2
         self.U = 1.
 
