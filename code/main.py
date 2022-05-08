@@ -47,10 +47,37 @@ U = opt_config.U
 state = varstate.VarState(opt_config)
 
 for n_iter in range(n_opt):
-	energy = state.energy()
+    energy, h_matrix = state.energy_derivative()
 
-	print('energy = {:.5f} + i ({:.3f})'.format(energy.real, energy.imag))
-	grad_G, grad_O = state.gradient()
+    '''
+    for i in range(opt_config.N_sites * 2):
+        for j in range(opt_config.N_sites * 2):
+            state.G[i, j] += 1e-7
+            state.G[j, i] += 1e-7
 
-	G -= lr * grad_G
-	O -= lr * grad_O
+            energy_der, _ = state.energy_derivative()
+            print('REAL', h_matrix[i, j].real, (energy_der - energy).real / 1e-7 / 2.)
+
+            state.G[i, j] -= 1e-7
+            state.G[j, i] -= 1e-7
+
+            state.G[i, j] += 1e-7j
+            state.G[j, i] -= 1e-7j
+
+            energy_der, _ = state.energy_derivative()
+            print('IMAG', h_matrix[i, j].imag, -(energy_der - energy).real / 1e-7 / 2.)
+
+            state.G[i, j] -= 1e-7j
+            state.G[j, i] += 1e-7j
+
+
+    ### END DEBUG ###
+    '''
+    print('energy = {:.5f} + i ({:.3f})'.format(energy.real, energy.imag))
+    grad_G, grad_O = state.gradient(energy, h_matrix)
+
+    print(np.linalg.norm(grad_G - grad_G.conj().T))
+    print(np.linalg.norm(grad_O.imag))
+
+    state.G -= lr * grad_G
+    state.O -= lr * grad_O
