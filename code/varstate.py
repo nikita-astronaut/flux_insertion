@@ -80,6 +80,8 @@ class VarState:
 
     def omega_natural_grad(self, E, h):
         rhs = E * VklGS(self.G)
+        assert np.isclose(np.linalg.norm(rhs.imag), 0.0) # <GS|n_i n_j |GS> can only be real-valued for any i-j
+
         rhs -= VklHpotGS(self.G, self.U_asmatrix)
         rhs -= VklHkinGS(self.G, self.O, self.H)
         print(rhs)
