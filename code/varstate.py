@@ -83,6 +83,8 @@ class VarState:
         assert np.isclose(np.linalg.norm(rhs.imag), 0.0) # <GS|n_i n_j |GS> can only be real-valued for any i-j
 
         rhs -= VklHpotGS(self.G, self.U_asmatrix)
+        assert np.isclose(np.linalg.norm(rhs.imag), 0.0) # <GS|n_i n_j H_pot|GS> -- only density density terms
+
         rhs -= VklHkinGS(self.G, self.O, self.H)
         print(rhs)
         #exit(-1)
