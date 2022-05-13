@@ -157,14 +157,14 @@ def fouridx(G):
     # -Gii <cdj cdk cdl cj ck cl> + 
     # + Gij [Gji <cdk cdl ck cl> - Gjk <cdk cdl ci cl> + Gjl <cdk cdl ci ck>] -
     # - Gik [Gji <cdk cdl cj cl> - Gjj <cdk cdl ci cl> + Gjl <cdk cdl ci cj>] +
-    # + Gil [Gji <cdk cdl cj ck> - Gjj <cdk cdl ci ck> + Gjl <cdk cdl ci cj>]
+    # + Gil [Gji <cdk cdl cj ck> - Gjj <cdk cdl ci ck> + Gjk <cdk cdl ci cj>]
 
     two_ijkl = twoidxijkl(G)
 
     return -np.einsum('ii,jkl->ijkl', G, threeidx(G)) + \
             np.einsum('ij,ji,kl->ijkl', G, G, twoidxijij(G)) - np.einsum('ij,jk,klil->ijkl', G, G, two_ijkl) + np.einsum('ij,jl,klik->ijkl', G, G, two_ijkl) + \
             np.einsum('ik,ji,kljl->ijkl', -G, G, two_ijkl) - np.einsum('ik,jj,klil->ijkl', -G, G, two_ijkl) + np.einsum('ik,jl,klij->ijkl', -G, G, two_ijkl) + \
-            np.einsum('il,ji,kljk->ijkl', G, G, two_ijkl) - np.einsum('il,jj,klik->ijkl', G, G, two_ijkl) + np.einsum('il,jl,klij->ijkl', G, G, two_ijkl)
+            np.einsum('il,ji,kljk->ijkl', G, G, two_ijkl) - np.einsum('il,jj,klik->ijkl', G, G, two_ijkl) + np.einsum('il,jk,klij->ijkl', G, G, two_ijkl)
 
 def VklVij(G):
     # -Djk Dli <cdi cdj ci cj> - Dki Dlj <cdi cdj ci cj> - Djk <cdi cdj cdl ci cj cl> - Dlj <cdi cdj cdk ci cj ck>
@@ -172,13 +172,19 @@ def VklVij(G):
     # <cdi cdj ci cj> (-Djk Dli - Dki Dlj) + <cdi cdj cdl ci cj cl> (-Djk - Dki) + <cdi cdj cdk ci cj ck> (-Dlj - Dli) + <cdi cdj cdk cdl ci cj ck cl>
 
     two_ijkl = twoidxijkl(G)
+
     three_ijk = threeidx(G)
+    assert np.isclose(np.sum(np.abs(three_ijk.imag)), 0.0)
+    four_ijkl = fouridx(G)
+    assert np.isclose(np.sum(np.abs(four_ijkl.imag)), 0.0)
+
+
     i = np.eye(G.shape[0])
 
     return -np.einsum('jk,li,ijij', i, i, two_ijkl) - np.einsum('ik,lj,ijij', i, i, two_ijkl) - \
             np.einsum('ijl,jk->ijkl', three_ijk, i) - np.einsum('ijl,ik->ijkl', three_ijk, i) - \
             np.einsum('ijk,jl->ijkl', three_ijk, i) - np.einsum('ijk,il->ijkl', three_ijk, i) + \
-            fouridx(G)
+            four_ijkl
 
 def VklcdicjGS(G):
     two_ijkl = twoidxijkl(G)
