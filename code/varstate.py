@@ -194,6 +194,7 @@ def VklGS(G):
 
 def VklHpotGS(G, U):
     VklVij_matrix = VklVij(G)
+    assert np.isclose(np.sum(np.abs(VklVij_matrix.imag)), 0.0)  # <ni nj nk nl> -- ONLY real-valued
 
     return np.einsum('ij,ijkl->kl', U, VklVij_matrix)
 
