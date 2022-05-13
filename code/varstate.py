@@ -83,7 +83,7 @@ class VarState:
         rhs -= VklHpotGS(self.G, self.U_asmatrix)
         rhs -= VklHkinGS(self.G, self.O, self.H)
         print(rhs)
-        exit(-1)
+        #exit(-1)
         VklcjicjGS_values = VklcdicjGS(self.G)
         rhs -= np.einsum('ijkl,ij->kl', VklcjicjGS_values, self.G.T @ h.T - h.T @ self.G.T, optimize='optimal')
 
