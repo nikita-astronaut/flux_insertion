@@ -49,7 +49,7 @@ state = varstate.VarState(opt_config)
 for n_iter in range(n_opt):
     energy, h_matrix = state.energy_derivative()
 
-    '''
+    '''    
     for i in range(opt_config.N_sites * 2):
         for j in range(opt_config.N_sites * 2):
             state.G[i, j] += 1e-7
@@ -72,6 +72,7 @@ for n_iter in range(n_opt):
 
 
     ### END DEBUG ###
+    
     '''
     print('energy = {:.5f} + i ({:.3f})'.format(energy.real, energy.imag))
     grad_G, grad_O = state.gradient(energy, h_matrix)
