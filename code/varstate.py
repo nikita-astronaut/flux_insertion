@@ -59,9 +59,12 @@ class VarState:
         Heff_kin = self.H * exp_small * dets * Phis
 
         #First there should be inverse of the derivative (invs_det instead invs). In second and third terms I corrected the output to
+        # h_kin = np.einsum('ab,abxy->xy', Heff_kin, -(d4_id - Aexp) @ invs_det, optimize='optimal') + \
+        #         np.einsum('ab,abax,abyb->yx', self.H * exp_small * dets, Aexp, invs, optimize='optimal') + \
+        #         np.einsum('ab,abax,abyb->yx', self.H * exp_small * dets, Aexp @ d4_Gamma @ invs @ (d4_id - Aexp), invs, optimize='optimal')
         h_kin = np.einsum('ab,abxy->xy', Heff_kin, -(d4_id - Aexp) @ invs_det, optimize='optimal') + \
-                np.einsum('ab,abax,abyb->yx', self.H * exp_small * dets, Aexp, invs, optimize='optimal') + \
-                np.einsum('ab,abax,abyb->yx', self.H * exp_small * dets, Aexp @ d4_Gamma @ invs @ (d4_id - Aexp), invs, optimize='optimal')
+                np.einsum('ab,abax,abyb->xy', self.H * exp_small * dets, Aexp, invs, optimize='optimal') + \
+                np.einsum('ab,abax,abyb->xy', self.H * exp_small * dets, Aexp @ d4_Gamma @ invs @ (d4_id - Aexp), invs, optimize='optimal')
 
         #Second one np.einsum('xy,yx->xy', self.G, self.U_asmatrix) change. Instead h_pot.conjugate().T != h_pot.
         h_pot = -np.einsum('xy,yx->xy', self.U_asmatrix, self.G) - np.einsum('xy,xy->yx', self.U_asmatrix, self.G, optimize='optimal') + \
@@ -191,7 +194,6 @@ def VklcdicjGS(G):
     two_ijkl = twoidxijkl(G)
     three_ijk = threeidx(G)
     i = np.eye(G.shape[0])
-    print('f', np.isclose(np.sum(np.abs(two_ijkl.imag)), 0.))
     return np.einsum('ik,illj->ijkl', i, two_ijkl) - np.einsum('il,kikj->ijkl', i, two_ijkl) + \
            np.einsum('kl,likj->ijkl', G, two_ijkl) - np.einsum('kk,lilj->ijkl', G, two_ijkl) + np.einsum('kj,lilk->ijkl', G, two_ijkl)
     # return np.einsum('ik,illj->klij', i, two_ijkl) - np.einsum('il,kikj->klij', i, two_ijkl) + \
