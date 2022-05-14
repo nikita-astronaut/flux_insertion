@@ -2,7 +2,7 @@ import numpy as np
 
 class opt_parameters:
     def __init__(self):
-        self.N_sites = 4
+        self.N_sites = 5
 
 
         ### initialize random starting G ###

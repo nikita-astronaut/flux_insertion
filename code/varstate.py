@@ -182,19 +182,20 @@ def VklVij(G):
 
 
     i = np.eye(G.shape[0])
-    return -np.einsum('jk,il,ijij->klij', i, i, two_ijkl) + np.einsum('ik,jl,ijji->klij', i, i, two_ijkl) - \
-            np.einsum('ijl,jk->klij', three_ijk, i) - np.einsum('ijl,ik->klij', three_ijk, i) - \
-            np.einsum('ijk,jl->klij', three_ijk, i) - np.einsum('ijk,il->klij', three_ijk, i) + \
+    return -np.einsum('jk,il,ijij->ijkl', i, i, two_ijkl) + np.einsum('ik,jl,ijji->ijkl', i, i, two_ijkl) - \
+            np.einsum('ijl,jk->ijkl', three_ijk, i) - np.einsum('ijl,ik->ijkl', three_ijk, i) - \
+            np.einsum('ijk,jl->ijkl', three_ijk, i) - np.einsum('ijk,il->ijkl', three_ijk, i) + \
             fouridx(G)
 
 def VklcdicjGS(G):
     two_ijkl = twoidxijkl(G)
     three_ijk = threeidx(G)
     i = np.eye(G.shape[0])
-
-    return np.einsum('ik,illj->klij', i, two_ijkl) - np.einsum('il,kikj->klij', i, two_ijkl) + \
-           np.einsum('kl,likj->klij', G, two_ijkl) - np.einsum('kk,lilj->klij', G, two_ijkl) + np.einsum('kj,lilk->klij', G, two_ijkl)
-
+    print('f', np.isclose(np.sum(np.abs(two_ijkl.imag)), 0.))
+    return np.einsum('ik,illj->ijkl', i, two_ijkl) - np.einsum('il,kikj->ijkl', i, two_ijkl) + \
+           np.einsum('kl,likj->ijkl', G, two_ijkl) - np.einsum('kk,lilj->ijkl', G, two_ijkl) + np.einsum('kj,lilk->ijkl', G, two_ijkl)
+    # return np.einsum('ik,illj->klij', i, two_ijkl) - np.einsum('il,kikj->klij', i, two_ijkl) + \
+    #        np.einsum('kl,likj->klij', G, two_ijkl) - np.einsum('kk,lilj->klij', G, two_ijkl) + np.einsum('kj,lilk->klij', G, two_ijkl)
 
 def VklGS(G):
     return -twoidxijij(G)
@@ -257,5 +258,5 @@ def VklHkinGS(G, Omega, K):
     res = np.zeros(G.shape, dtype=np.complex128)
     for a, b in zip(a_vals, b_vals):  # it feels like w.o. this for loop we will get out of memory at 20-30 sites
         res += Vklcdacb_exp(G, Aexp[a, b, ...], a, b) * K[a, b] * exp_small[a, b]
-
+    #np.allclose(res, )
     return res
