@@ -1,8 +1,8 @@
 import varstate
-import numpy as np
 import sys
 import os
 import config as cv_module
+from code.utils import *
 
 def import_config(filename: str):
     import importlib
@@ -26,7 +26,7 @@ def import_config(filename: str):
     sys.path.pop(0)
     return module
 
-
+np.random.seed(240)
 config_file = import_config(sys.argv[1])
 config_import = config_file.opt_parameters()
 
@@ -42,9 +42,18 @@ N_sites = opt_config.N_sites
 U = opt_config.U
 
 
-
-
 state = varstate.VarState(opt_config)
+
+energy, h_matrix = state.energy_derivative()
+energy_check = PotentialExpectationValue(state.G, state.O, U, N_sites, state.H).get_energy() + KineticExpectationValue(state.G, state.O, U, N_sites, state.H).get_energy()
+print('energy', np.allclose(energy, energy_check))
+derivatives = Derivatives(state.G,
+                 state.O,
+                 U,
+                 N_sites,
+                 state.H)
+print('h', np.allclose(h_matrix, derivatives.get_gamma_num_derivs(PotentialExpectationValue) + derivatives.get_gamma_num_derivs(KineticExpectationValue).T))
+
 
 for n_iter in range(n_opt):
     energy, h_matrix = state.energy_derivative()

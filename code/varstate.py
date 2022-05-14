@@ -34,7 +34,6 @@ class VarState:
         Aexp = np.zeros((2 * S, 2 * S, 2 * S, 2 * S), dtype=np.complex128)
         Aexp[..., np.arange(2 * S), np.arange(2 * S)] = np.exp(2.0j * alpha)  # abpq
 
-
         d4_id = np.tile(np.eye(2 * S)[np.newaxis, np.newaxis, ...], (2 * S, 2 * S, 1, 1))
         d4_Gamma = np.tile(self.G[np.newaxis, np.newaxis, ...], (2 * S, 2 * S, 1, 1))
 
@@ -42,6 +41,7 @@ class VarState:
         dets = np.linalg.det(d4_id - d4_Gamma @ (d4_id - Aexp))  # abpq -> ab
 
         invs = np.linalg.inv(d4_id - (d4_id - Aexp) @ d4_Gamma)
+        invs_det = np.linalg.inv(d4_id - d4_Gamma @ (d4_id - Aexp))
         Phis = Aexp @ d4_Gamma @ invs
         Phis = np.diagonal(Phis.transpose((0, 2, 1, 3)), axis1=0, axis2=1)
         Phis = np.diagonal(Phis, axis1=0, axis2=1)  # abpq -> ab
@@ -57,11 +57,13 @@ class VarState:
 
         Heff_kin = self.H * exp_small * dets * Phis
 
-        h_kin = np.einsum('ab,abxy->xy', Heff_kin, -(d4_id - Aexp) @ invs, optimize='optimal') + \
-                np.einsum('ab,abax,abyb->xy', self.H * exp_small * dets, Aexp, invs, optimize='optimal') + \
-                np.einsum('ab,abax,abyb->xy', self.H * exp_small * dets, Aexp @ d4_Gamma @ invs @ (d4_id - Aexp), invs, optimize='optimal')
+        #First there should be inverse of the derivative (invs_det instead invs). In second and third terms I corrected the output to
+        h_kin = np.einsum('ab,abxy->xy', Heff_kin, -(d4_id - Aexp) @ invs_det, optimize='optimal') + \
+                np.einsum('ab,abax,abyb->yx', self.H * exp_small * dets, Aexp, invs, optimize='optimal') + \
+                np.einsum('ab,abax,abyb->yx', self.H * exp_small * dets, Aexp @ d4_Gamma @ invs @ (d4_id - Aexp), invs, optimize='optimal')
 
-        h_pot = -np.einsum('xy,yx->xy', self.U_asmatrix, self.G) - np.einsum('xy,yx->xy', self.G, self.U_asmatrix, optimize='optimal') + \
+        #Second one np.einsum('xy,yx->xy', self.G, self.U_asmatrix) change. Instead h_pot.conjugate().T != h_pot.
+        h_pot = -np.einsum('xy,yx->xy', self.U_asmatrix, self.G) - np.einsum('xy,xy->yx', self.U_asmatrix, self.G, optimize='optimal') + \
                  np.einsum('xy,xb,bb->xy', np.eye(2 * S), self.U_asmatrix, self.G, optimize='optimal') + \
                  np.einsum('xy,ax,aa->xy', np.eye(2 * S), self.U_asmatrix, self.G, optimize='optimal')
 
@@ -153,11 +155,11 @@ def fouridx(G):
     # + Gil [Gji <cdk cdl cj ck> - Gjj <cdk cdl ci ck> + Gjl <cdk cdl ci cj>]
 
     two_ijkl = twoidxijkl(G)
-
+    #Last einsum 'il,jl,klij->ijkl' correct to 'il,jk,klij->ijkl'
     return -np.einsum('ii,jkl->ijkl', G, threeidx(G)) + \
             np.einsum('ij,ji,kl->ijkl', G, G, twoidxijij(G)) - np.einsum('ij,jk,klil->ijkl', G, G, two_ijkl) + np.einsum('ij,jl,klik->ijkl', G, G, two_ijkl) + \
             np.einsum('ik,ji,kljl->ijkl', -G, G, two_ijkl) - np.einsum('ik,jj,klil->ijkl', -G, G, two_ijkl) + np.einsum('ik,jl,klij->ijkl', -G, G, two_ijkl) + \
-            np.einsum('il,ji,kljk->ijkl', G, G, two_ijkl) - np.einsum('il,jj,klik->ijkl', G, G, two_ijkl) + np.einsum('il,jl,klij->ijkl', G, G, two_ijkl)
+            np.einsum('il,ji,kljk->ijkl', G, G, two_ijkl) - np.einsum('il,jj,klik->ijkl', G, G, two_ijkl) + np.einsum('il,jk,klij->ijkl', G, G, two_ijkl)
 
 def VklVij(G):
     # -Djk Dli <cdi cdj ci cj> - Dki Dlj <cdi cdj ci cj> - Djk <cdi cdj cdl ci cj cl> - Dlj <cdi cdj cdk ci cj ck>
@@ -167,10 +169,9 @@ def VklVij(G):
     two_ijkl = twoidxijkl(G)
     three_ijk = threeidx(G)
     i = np.eye(G.shape[0])
-
-    return -np.einsum('jk,li,ijij', i, i, two_ijkl) - np.einsum('ik,lj,ijij', i, i, two_ijkl) - \
-            np.einsum('ijl,jk->ijkl', three_ijk, i) - np.einsum('ijl,ik->ijkl', three_ijk, i) - \
-            np.einsum('ijk,jl->ijkl', three_ijk, i) - np.einsum('ijk,il->ijkl', three_ijk, i) + \
+    return -np.einsum('jk,il,ijij->klij', i, i, two_ijkl) + np.einsum('ik,jl,ijji->klij', i, i, two_ijkl) - \
+            np.einsum('ijl,jk->klij', three_ijk, i) - np.einsum('ijl,ik->klij', three_ijk, i) - \
+            np.einsum('ijk,jl->klij', three_ijk, i) - np.einsum('ijk,il->klij', three_ijk, i) + \
             fouridx(G)
 
 def VklcdicjGS(G):
@@ -178,8 +179,8 @@ def VklcdicjGS(G):
     three_ijk = threeidx(G)
     i = np.eye(G.shape[0])
 
-    return np.einsum('ik,illj->ijkl', i, two_ijkl) - np.einsum('il,kikj->ijkl', i, two_ijkl) + \
-           np.einsum('kl,likj->ijkl', G, two_ijkl) - np.einsum('kk,lilj->ijkl', G, two_ijkl) + np.einsum('kj,lilk->ijkl', G, two_ijkl)
+    return np.einsum('ik,illj->klij', i, two_ijkl) - np.einsum('il,kikj->klij', i, two_ijkl) + \
+           np.einsum('kl,likj->klij', G, two_ijkl) - np.einsum('kk,lilj->klij', G, two_ijkl) + np.einsum('kj,lilk->klij', G, two_ijkl)
 
 
 def VklGS(G):
