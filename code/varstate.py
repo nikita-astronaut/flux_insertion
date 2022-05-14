@@ -34,6 +34,7 @@ class VarState:
         Aexp = np.zeros((2 * S, 2 * S, 2 * S, 2 * S), dtype=np.complex128)
         Aexp[..., np.arange(2 * S), np.arange(2 * S)] = np.exp(2.0j * alpha)  # abpq
 
+
         d4_id = np.tile(np.eye(2 * S)[np.newaxis, np.newaxis, ...], (2 * S, 2 * S, 1, 1))
         d4_Gamma = np.tile(self.G[np.newaxis, np.newaxis, ...], (2 * S, 2 * S, 1, 1))
 
@@ -81,8 +82,14 @@ class VarState:
 
     def omega_natural_grad(self, E, h):
         rhs = E * VklGS(self.G)
+        assert np.isclose(np.linalg.norm(rhs.imag), 0.0) # <GS|n_i n_j |GS> can only be real-valued for any i-j
+
         rhs -= VklHpotGS(self.G, self.U_asmatrix)
+        assert np.isclose(np.linalg.norm(rhs.imag), 0.0) # <GS|n_i n_j H_pot|GS> -- only density density terms
+
         rhs -= VklHkinGS(self.G, self.O, self.H)
+        print(rhs)
+        #exit(-1)
         VklcjicjGS_values = VklcdicjGS(self.G)
         rhs -= np.einsum('ijkl,ij->kl', VklcjicjGS_values, self.G.T @ h.T - h.T @ self.G.T, optimize='optimal')
 
@@ -102,7 +109,7 @@ class VarState:
 
 
         mat = M.reshape((self.G.shape[0] ** 2, -1))
-        print(np.linalg.norm(mat - mat.conj().T))
+        print('is mat rehm?', np.linalg.norm(mat - mat.conj().T))
 
         return (np.linalg.inv(M.reshape((self.G.shape[0] ** 2, -1))) @ rhs.flatten()).reshape((self.G.shape[0], -1))
 
@@ -152,10 +159,10 @@ def fouridx(G):
     # -Gii <cdj cdk cdl cj ck cl> + 
     # + Gij [Gji <cdk cdl ck cl> - Gjk <cdk cdl ci cl> + Gjl <cdk cdl ci ck>] -
     # - Gik [Gji <cdk cdl cj cl> - Gjj <cdk cdl ci cl> + Gjl <cdk cdl ci cj>] +
-    # + Gil [Gji <cdk cdl cj ck> - Gjj <cdk cdl ci ck> + Gjl <cdk cdl ci cj>]
+    # + Gil [Gji <cdk cdl cj ck> - Gjj <cdk cdl ci ck> + Gjk <cdk cdl ci cj>]
 
     two_ijkl = twoidxijkl(G)
-    #Last einsum 'il,jl,klij->ijkl' correct to 'il,jk,klij->ijkl'
+
     return -np.einsum('ii,jkl->ijkl', G, threeidx(G)) + \
             np.einsum('ij,ji,kl->ijkl', G, G, twoidxijij(G)) - np.einsum('ij,jk,klil->ijkl', G, G, two_ijkl) + np.einsum('ij,jl,klik->ijkl', G, G, two_ijkl) + \
             np.einsum('ik,ji,kljl->ijkl', -G, G, two_ijkl) - np.einsum('ik,jj,klil->ijkl', -G, G, two_ijkl) + np.einsum('ik,jl,klij->ijkl', -G, G, two_ijkl) + \
@@ -167,7 +174,13 @@ def VklVij(G):
     # <cdi cdj ci cj> (-Djk Dli - Dki Dlj) + <cdi cdj cdl ci cj cl> (-Djk - Dki) + <cdi cdj cdk ci cj ck> (-Dlj - Dli) + <cdi cdj cdk cdl ci cj ck cl>
 
     two_ijkl = twoidxijkl(G)
+
     three_ijk = threeidx(G)
+    assert np.isclose(np.sum(np.abs(three_ijk.imag)), 0.0)
+    four_ijkl = fouridx(G)
+    assert np.isclose(np.sum(np.abs(four_ijkl.imag)), 0.0)
+
+
     i = np.eye(G.shape[0])
     return -np.einsum('jk,il,ijij->klij', i, i, two_ijkl) + np.einsum('ik,jl,ijji->klij', i, i, two_ijkl) - \
             np.einsum('ijl,jk->klij', three_ijk, i) - np.einsum('ijl,ik->klij', three_ijk, i) - \
@@ -188,28 +201,29 @@ def VklGS(G):
 
 def VklHpotGS(G, U):
     VklVij_matrix = VklVij(G)
+    assert np.isclose(np.sum(np.abs(VklVij_matrix.imag)), 0.0)  # <ni nj nk nl> -- ONLY real-valued
 
     return np.einsum('ij,ijkl->kl', U, VklVij_matrix)
 
 
-def Vklcdacb_exp(G, alpha, a, b):  # <-- here alpha is a diagonal part of ab-dependent alpha
+def Vklcdacb_exp(G, expalpha, a, b):  # <-- here alpha is a diagonal part of ab-dependent alpha
     # -<cdk cdl ck cl cda cb> = <cdk cdl ck cda cl cb> - Dal <cdk cdl ck cb> = 
     # Dak <cdk cdl cl cb> - Dal <cdk cdl ck cb> - <cdk cdl cda ck cl cb> = 
     # Dak <cda cdl cl cb> + Dal <cda cdk ck cb> + <cda cdk cdl cl ck cb>
-    def cdicdjcjck_exp(G, alpha):
+    def cdicdjcjck_exp(G, expalpha):
         # < cdi cdj cj ck exp(i \sum_c n_c) >
         i = np.eye(G.shape[0])
-        expalpha = np.diag(np.exp(1.0j * alpha))
+
         det = np.linalg.det(i - G @ (i - expalpha))
         Phi = np.linalg.inv(i - G @ (i - expalpha)) @ G @ expalpha
 
         return det * (np.einsum('ik,jj->ijk', Phi, Phi) - np.einsum('ij,jk->ijk', Phi, Phi))
 
 
-    def cdicdjcdkckcjcl_exp(G, alpha):
+    def cdicdjcdkckcjcl_exp(G, expalpha):
         # < cdi cdj cdk ck cj cl exp(i \sum_c n_c) >
         i = np.eye(G.shape[0])
-        expalpha = np.diag(np.exp(1.0j * alpha))
+
         det = np.linalg.det(i - G @ (i - expalpha))
         Phi = np.linalg.inv(i - G @ (i - expalpha)) @ G @ expalpha
 
@@ -219,8 +233,8 @@ def Vklcdacb_exp(G, alpha, a, b):  # <-- here alpha is a diagonal part of ab-dep
                       np.einsum('ik,jkjl->ijkl', Phi, two_ijkl))
 
     i = np.eye(G.shape[0])
-    threeop = cdicdjcjck_exp(G, alpha)
-    fourop = cdicdjcdkckcjcl_exp(G, alpha)
+    threeop = cdicdjcjck_exp(G, expalpha)
+    fourop = cdicdjcdkckcjcl_exp(G, expalpha)
 
     return np.einsum('ak,alb->aklb', i, threeop)[a, :, :, b] + np.einsum('al,akb->aklb', i, threeop)[a, :, :, b] + \
            fourop[a, :, :, b]
@@ -235,10 +249,13 @@ def VklHkinGS(G, Omega, K):
     Aexp = np.zeros((2 * S, 2 * S, 2 * S, 2 * S), dtype=np.complex128)
     Aexp[..., np.arange(2 * S), np.arange(2 * S)] = np.exp(2.0j * alpha)  # abpq
 
+    exp_small = np.diagonal(Aexp.conj(), axis1=-1, axis2=-2)
+    exp_small = np.diagonal(exp_small.transpose((2, 0, 1)), axis1=0, axis2=1).T
+
     a_vals, b_vals = np.nonzero(K)
 
     res = np.zeros(G.shape, dtype=np.complex128)
     for a, b in zip(a_vals, b_vals):  # it feels like w.o. this for loop we will get out of memory at 20-30 sites
-        res += Vklcdacb_exp(G, np.diag(Aexp[a, b, ...]), a, b)
+        res += Vklcdacb_exp(G, Aexp[a, b, ...], a, b) * K[a, b] * exp_small[a, b]
 
     return res
