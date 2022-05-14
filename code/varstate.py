@@ -15,13 +15,10 @@ class VarState:
 
         self.restore_idempotent_form()
 
-
-        assert np.allclose(self.G @ self.G, self.G)
-
     def gradient(self, E, h_matrix):
-        domega = self.omega_natural_grad(E, h_matrix)
+        domega = self.O * 0.#self.omega_natural_grad(E, h_matrix)
 
-        dGamma = self.Gamma_natural_grad(domega, h_matrix)
+        dGamma = h_matrix#self.Gamma_natural_grad(domega, h_matrix)
 
         return dGamma, domega
 
@@ -75,16 +72,24 @@ class VarState:
 
     def restore_idempotent_form(self):
         # for an idempotent matrix, in the SVD decomposition V = U^* and singular values are only 0 and 1
-        u, s, v = np.linalg.svd(self.G)
+        u, s0, v = np.linalg.svd(self.G)
+        s = s0.copy()
         s[s < 0.5] = 0.0
         s[s > 0.5] = 1.0
 
+        print('idempotentmachung: ||v - u^dag||', np.linalg.norm(v - u.conj().T))
+        print('|s - s0|:', np.linalg.norm(s - s0))
+
+
         self.G = u @ np.diag(s) @ u.conj().T
+
+        assert np.allclose(self.G, self.G @ self.G)
         return
 
 
     def omega_natural_grad(self, E, h):
-        rhs = E * VklGS(self.G)
+        VklGS_values = VklGS(self.G)
+        rhs = E * VklGS_values
         assert np.isclose(np.linalg.norm(rhs.imag), 0.0) # <GS|n_i n_j |GS> can only be real-valued for any i-j
 
         rhs -= VklHpotGS(self.G, self.U_asmatrix)
@@ -94,6 +99,26 @@ class VarState:
         print(rhs)
         #exit(-1)
         VklcjicjGS_values = VklcdicjGS(self.G)
+
+
+        '''
+        print('VklcjicjGS_values norm', np.sum(np.abs(VklcjicjGS_values)))
+
+        VklcjicjGS_values_transpose = VklcjicjGS_values.conj().transpose((1, 0, 2, 3))
+
+        for i in range(VklcjicjGS_values.shape[0]):
+            for j in range(VklcjicjGS_values.shape[0]):
+                for k in range(VklcjicjGS_values.shape[0]):
+                    for l in range(VklcjicjGS_values.shape[0]):
+                        if i == k or i == l or j == k or j == l:
+                            continue
+
+                        #if np.abs(VklcjicjGS_values[i, j, k, l]) < 1e-10:
+                        #    continue
+                        #print('ACHTUNG', i, j, k, l)
+                        #print(VklcjicjGS_values[i, j, k, l], VklcjicjGS_values_transpose[i, j, k, l])
+                        assert np.isclose(VklcjicjGS_values[i, j, k, l], VklcjicjGS_values_transpose[i, j, k, l])
+        '''
         rhs -= np.einsum('ijkl,ij->kl', VklcjicjGS_values, self.G.T @ h.T - h.T @ self.G.T, optimize='optimal')
 
 
@@ -103,12 +128,15 @@ class VarState:
 
         # first term Viijk \sum_m i \delta_t \omega_im Gamma_mm
         # \omega_ij A_ij^kl = \sum_i \sum_j V_iikl i \omega_ij \Gamma_jj
-        M -= 1.0j * np.einsum('jikl,ij->ijkl', VklcjicjGS_values, self.G)  # check here (transposition)
-        M += 1.0j * np.einsum('iikl,jj->ijkl', VklcjicjGS_values, self.G)
+        M += 1.0j * np.einsum('jikl,ij->ijkl', VklcjicjGS_values, self.G)  # check here (transposition)
+        M -= 1.0j * np.einsum('iikl,jj->ijkl', VklcjicjGS_values, self.G)
+
 
         # VklGS (1/2) \sum_ij i \delta_t \omega_ij \Gamma_jj - V klGS i  \delta_t \sum_ij \delta_ij \omega_ij \Gamma_ij
-        M += 1.0j / 2. * np.tile(np.diag(self.G)[np.newaxis, :], (self.G.shape[0], 1))  # check me
-        M -= 1.0j * np.diag(np.diag(self.G))
+        M += np.einsum('kl,ij->ijkl', VklGS_values,  \
+            1.0j / 2. * np.tile(np.diag(self.G)[np.newaxis, :], (self.G.shape[0], 1)))  # check me
+        M -= np.einsum('kl,ij->ijkl', \
+            VklGS_values, 1.0j / 2. * np.diag(np.diag(self.G)))
 
 
         mat = M.reshape((self.G.shape[0] ** 2, -1))
@@ -196,9 +224,7 @@ def VklcdicjGS(G):
     i = np.eye(G.shape[0])
     return np.einsum('ik,illj->ijkl', i, two_ijkl) - np.einsum('il,kikj->ijkl', i, two_ijkl) + \
            np.einsum('kl,likj->ijkl', G, two_ijkl) - np.einsum('kk,lilj->ijkl', G, two_ijkl) + np.einsum('kj,lilk->ijkl', G, two_ijkl)
-    # return np.einsum('ik,illj->klij', i, two_ijkl) - np.einsum('il,kikj->klij', i, two_ijkl) + \
-    #        np.einsum('kl,likj->klij', G, two_ijkl) - np.einsum('kk,lilj->klij', G, two_ijkl) + np.einsum('kj,lilk->klij', G, two_ijkl)
-
+    
 def VklGS(G):
     return -twoidxijij(G)
 

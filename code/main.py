@@ -2,7 +2,9 @@ import varstate
 import sys
 import os
 import config as cv_module
-from code.utils import *
+#from code.utils import *
+import numpy as np
+
 
 def import_config(filename: str):
     import importlib
@@ -26,7 +28,7 @@ def import_config(filename: str):
     sys.path.pop(0)
     return module
 
-np.random.seed(240)
+#np.random.seed(240)
 config_file = import_config(sys.argv[1])
 config_import = config_file.opt_parameters()
 
@@ -45,6 +47,7 @@ U = opt_config.U
 state = varstate.VarState(opt_config)
 
 energy, h_matrix = state.energy_derivative()
+'''
 energy_check = PotentialExpectationValue(state.G, state.O, U, N_sites, state.H).get_energy() + KineticExpectationValue(state.G, state.O, U, N_sites, state.H).get_energy()
 print('energy', np.allclose(energy, energy_check))
 derivatives = Derivatives(state.G,
@@ -53,7 +56,7 @@ derivatives = Derivatives(state.G,
                  N_sites,
                  state.H)
 print('h', np.allclose(h_matrix, derivatives.get_gamma_num_derivs(PotentialExpectationValue) + derivatives.get_gamma_num_derivs(KineticExpectationValue).T))
-
+'''
 
 for n_iter in range(n_opt):
     energy, h_matrix = state.energy_derivative()
@@ -91,3 +94,4 @@ for n_iter in range(n_opt):
 
     state.G -= lr * grad_G
     state.O -= lr * grad_O
+    state.restore_idempotent_form()
