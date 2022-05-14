@@ -92,6 +92,8 @@ for n_iter in range(n_opt):
     print(np.linalg.norm(grad_G - grad_G.conj().T))
     print(np.linalg.norm(grad_O.imag))
 
+    print('current density', np.trace(state.G))
+
     state.G -= lr * grad_G
     state.O -= lr * grad_O
     state.restore_idempotent_form()

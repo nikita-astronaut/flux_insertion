@@ -27,10 +27,12 @@ class opt_parameters:
 
 
         free_energies = np.linalg.eigh(self.H)[0]
+        print(free_energies)
         print(np.sum(free_energies[free_energies < 0.]), "FREE ENERGY")
 
         self.n_opt = 10000
-        self.lr = 1e-2
+        self.lr = 1e-1
         self.U = 0.  # FIXME
+        self.density = self.N_sites
 
         return

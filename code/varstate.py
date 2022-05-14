@@ -13,12 +13,12 @@ class VarState:
         self.U_asmatrix = np.zeros(self.H.shape, dtype=np.complex128)
         self.U_asmatrix[np.arange(self.H.shape[0] // 2), np.arange(self.H.shape[0] // 2) + self.H.shape[0] // 2] = self.U  
 
-        self.restore_idempotent_form()
+        self.restore_idempotent_form(set_density = opt_config.density)
 
     def gradient(self, E, h_matrix):
-        domega = self.O * 0.#self.omega_natural_grad(E, h_matrix)
+        domega = self.omega_natural_grad(E, h_matrix)
 
-        dGamma = h_matrix#self.Gamma_natural_grad(domega, h_matrix)
+        dGamma = self.Gamma_natural_grad(domega, h_matrix)
 
         return dGamma, domega
 
@@ -70,18 +70,25 @@ class VarState:
 
         return kin_energy + pot_energy, h_kin + h_pot
 
-    def restore_idempotent_form(self):
+    def restore_idempotent_form(self, set_density = None):
         # for an idempotent matrix, in the SVD decomposition V = U^* and singular values are only 0 and 1
+        G_before = self.G.copy()
         u, s0, v = np.linalg.svd(self.G)
         s = s0.copy()
         s[s < 0.5] = 0.0
         s[s > 0.5] = 1.0
+
+        if set_density is not None:
+            s[:set_density] = 1.0
+            s[set_density:] = 0.0
 
         print('idempotentmachung: ||v - u^dag||', np.linalg.norm(v - u.conj().T))
         print('|s - s0|:', np.linalg.norm(s - s0))
 
 
         self.G = u @ np.diag(s) @ u.conj().T
+
+        print('change G norm', np.linalg.norm(G_before - self.G))
 
         assert np.allclose(self.G, self.G @ self.G)
         return
