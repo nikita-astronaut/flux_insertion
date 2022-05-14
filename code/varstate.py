@@ -15,10 +15,9 @@ class VarState:
 
         self.restore_idempotent_form(set_density = opt_config.density)
 
-    def gradient(self, E, h_matrix):
-        domega = self.omega_natural_grad(E, h_matrix)
-
-        dGamma = self.Gamma_natural_grad(domega, h_matrix)
+    def gradient(self, E, h_matrix, o_matrix):
+        domega = o_matrix #self.omega_natural_grad(E, h_matrix)
+        dGamma = h_matrix # self.Gamma_natural_grad(domega, h_matrix)
 
         return dGamma, domega
 
@@ -68,7 +67,11 @@ class VarState:
                  np.einsum('xy,xb,bb->xy', np.eye(2 * S), self.U_asmatrix, self.G, optimize='optimal') + \
                  np.einsum('xy,ax,aa->xy', np.eye(2 * S), self.U_asmatrix, self.G, optimize='optimal')
 
-        return kin_energy + pot_energy, h_kin + h_pot
+
+        o_der = ...#
+
+        return kin_energy + pot_energy, h_kin + h_pot, o_der
+
 
     def restore_idempotent_form(self, set_density = None):
         # for an idempotent matrix, in the SVD decomposition V = U^* and singular values are only 0 and 1
@@ -95,6 +98,7 @@ class VarState:
 
 
     def omega_natural_grad(self, E, h):
+        return 0 * h.real
         VklGS_values = VklGS(self.G)
         rhs = E * VklGS_values
         assert np.isclose(np.linalg.norm(rhs.imag), 0.0) # <GS|n_i n_j |GS> can only be real-valued for any i-j
@@ -154,7 +158,7 @@ class VarState:
 
     def Gamma_natural_grad(self, dtauomega, h):
         O = np.einsum('ij,ik,kk->ij', np.eye(h.shape[0]), 1.0j * dtauomega, self.G) - 1.0j * dtauomega * self.G
-        return 2 * self.G @ h @ self.G - h @ self.G - self.G @ h - self.G @ O + O @ self.G
+        return -(2 * self.G @ h @ self.G - h @ self.G - self.G @ h - self.G @ O + O @ self.G)
 
 
         

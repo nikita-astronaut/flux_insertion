@@ -46,7 +46,7 @@ U = opt_config.U
 
 state = varstate.VarState(opt_config)
 
-energy, h_matrix = state.energy_derivative()
+#energy, h_matrix = state.energy_derivative()
 '''
 energy_check = PotentialExpectationValue(state.G, state.O, U, N_sites, state.H).get_energy() + KineticExpectationValue(state.G, state.O, U, N_sites, state.H).get_energy()
 print('energy', np.allclose(energy, energy_check))
@@ -59,7 +59,7 @@ print('h', np.allclose(h_matrix, derivatives.get_gamma_num_derivs(PotentialExpec
 '''
 
 for n_iter in range(n_opt):
-    energy, h_matrix = state.energy_derivative()
+    energy, h_matrix, o_matrix = state.energy_derivative()
 
     '''    
     for i in range(opt_config.N_sites * 2):
@@ -87,7 +87,7 @@ for n_iter in range(n_opt):
     
     '''
     print('energy = {:.5f} + i ({:.3f})'.format(energy.real, energy.imag))
-    grad_G, grad_O = state.gradient(energy, h_matrix)
+    grad_G, grad_O = state.gradient(energy, h_matrix, o_matrix)
 
     print(np.linalg.norm(grad_G - grad_G.conj().T))
     print(np.linalg.norm(grad_O.imag))
