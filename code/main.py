@@ -60,20 +60,28 @@ print('h', np.allclose(h_matrix, derivatives.get_gamma_num_derivs(PotentialExpec
 
 for n_iter in range(n_opt):
     energy, h_matrix, o_matrix = state.energy_derivative()
-
+    print('energy = {:.15f} + i ({:.15f})'.format(energy.real, energy.imag))
+    print('o_matrix diag norm:', np.linalg.norm(np.diag(o_matrix)))
+    print('o_matrix trans norm:', np.linalg.norm(o_matrix - o_matrix.T))
+    print('o_matrix imag norm', np.linalg.norm(o_matrix.imag))
+    #assert np.isclose(np.linalg.norm(np.diag(o_matrix)), 0.0)
+    '''
     for i in range(opt_config.N_sites * 2):
         for j in range(opt_config.N_sites * 2):
-            state.O[i, j] += 1e-7
-            state.O[j, i] += 1e-7
+            state.G[i, j] += 1e-7
+            #state.G[j, i] -= 1e-7j
 
             energy_der, _, _ = state.energy_derivative()
-            print('REAL', o_matrix[i, j].real, (energy_der - energy).real / 1e-7 / 2.)
+            print('IMAG', h_matrix[i, j].real, ((energy_der - energy).real / 1e-7))
+            state.G[i, j] -= 1e-7
+            #state.G[j, i] += 1e-7j
+    '''
 
 
     ### END DEBUG ###
     
     
-    print('energy = {:.5f} + i ({:.3f})'.format(energy.real, energy.imag))
+    print('energy = {:.15f} + i ({:.15f})'.format(energy.real, energy.imag))
     grad_G, grad_O = state.gradient(energy, h_matrix, o_matrix)
 
     print(np.linalg.norm(grad_G - grad_G.conj().T))
@@ -83,4 +91,6 @@ for n_iter in range(n_opt):
 
     state.G -= lr * grad_G
     state.O -= lr * grad_O
+    #state.O *= 0.  # FIXME
+    print(state.O)
     state.restore_idempotent_form()

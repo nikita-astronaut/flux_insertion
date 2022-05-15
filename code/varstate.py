@@ -11,7 +11,8 @@ class VarState:
 
         # for on-site interaction
         self.U_asmatrix = np.zeros(self.H.shape, dtype=np.complex128)
-        self.U_asmatrix[np.arange(self.H.shape[0] // 2), np.arange(self.H.shape[0] // 2) + self.H.shape[0] // 2] = self.U  
+        self.U_asmatrix[np.arange(self.H.shape[0] // 2), np.arange(self.H.shape[0] // 2) + self.H.shape[0] // 2] = self.U / 2.
+        self.U_asmatrix = self.U_asmatrix + self.U_asmatrix.T
 
         self.restore_idempotent_form(set_density = opt_config.density)
 
@@ -47,15 +48,17 @@ class VarState:
         exp_small = np.diagonal(Aexp.conj(), axis1=-1, axis2=-2)
         exp_small = np.diagonal(exp_small.transpose((2, 0, 1)), axis1=0, axis2=1).T
 
-
         kin_energy = np.sum(self.H * exp_small * dets * Phis)
+        #kin_energy = np.sum(self.H * exp_small * dets)
         pot_energy = -np.einsum('ab,ab,ba', self.U_asmatrix, self.G, self.G) + \
                       np.einsum('ab,aa,bb', self.U_asmatrix, self.G, self.G)
 
         Heff_kin = self.H * exp_small * dets * Phis
+        #Heff_kin = self.H * exp_small * dets
+        
 
         #First there should be inverse of the derivative (invs_det instead invs). In second and third terms I corrected the output to
-        h_kin = np.einsum('ab,abxy->xy', Heff_kin, -(d4_id - Aexp) @ invs_det, optimize='optimal') + \
+        h_kin = np.einsum('ab,abxy->xy', Heff_kin, -(d4_id - Aexp) @ invs_det, optimize='optimal').T + \
                 np.einsum('ab,abax,abyb->xy', self.H * exp_small * dets, Aexp, invs, optimize='optimal') + \
                 np.einsum('ab,abax,abyb->xy', self.H * exp_small * dets, Aexp @ d4_Gamma @ invs @ (d4_id - Aexp), invs, optimize='optimal')
 
@@ -70,14 +73,18 @@ class VarState:
         # delta_bx - delta_ax
         antisymm = np.diagonal(np.subtract.outer(i, i).transpose((2, 0, 1, 3)), axis1=-1, axis2=-2)
 
+        #o_der = -2.0j * np.einsum('ab,ay,abx->xy', Heff_kin, i, antisymm, optimize='optimal') + \
+        #         2.0j * np.einsum('ab,abyr,ry,abyy,abx->xy', Heff_kin, invs_det, self.G, Aexp, antisymm)
+        
         o_der = -2.0j * np.einsum('ab,ay,abx->xy', Heff_kin, i, antisymm, optimize='optimal') + \
                  2.0j * np.einsum('ab,abyr,ry,abyy,abx->xy', Heff_kin, invs_det, self.G, Aexp, antisymm) + \
                  2.0j * np.einsum('ab,abx,abab,ay->xy', self.H * exp_small * dets, \
                     antisymm, Aexp @ d4_Gamma @ invs, i) + \
-                 2.0j * np.einsum('ab,abx,abay,abyb->xy', self.H * exp_small * dets, \
+                 -2.0j * np.einsum('ab,abx,abay,abyb->xy', self.H * exp_small * dets, \
                     antisymm, Aexp @ d4_Gamma @ invs, Aexp @ d4_Gamma @ invs)
+        
 
-        return kin_energy + pot_energy, h_kin + h_pot, o_der
+        return kin_energy + pot_energy, h_kin + h_pot, o_der.real
 
 
     def restore_idempotent_form(self, set_density = None):
@@ -97,6 +104,7 @@ class VarState:
 
 
         self.G = u @ np.diag(s) @ u.conj().T
+        self.O = (self.O + self.O.T) / 2.
 
         print('change G norm', np.linalg.norm(G_before - self.G))
 
