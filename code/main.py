@@ -65,17 +65,19 @@ for n_iter in range(n_opt):
     print('o_matrix trans norm:', np.linalg.norm(o_matrix - o_matrix.T))
     print('o_matrix imag norm', np.linalg.norm(o_matrix.imag))
     #assert np.isclose(np.linalg.norm(np.diag(o_matrix)), 0.0)
+    
     '''
     for i in range(opt_config.N_sites * 2):
         for j in range(opt_config.N_sites * 2):
-            state.G[i, j] += 1e-7
+            state.O[i, j] += 1e-7
             #state.G[j, i] -= 1e-7j
 
             energy_der, _, _ = state.energy_derivative()
-            print('IMAG', h_matrix[i, j].real, ((energy_der - energy).real / 1e-7))
-            state.G[i, j] -= 1e-7
+            print('IMAG', o_matrix[i, j], ((energy_der - energy).real / 1e-7))
+            state.O[i, j] -= 1e-7
             #state.G[j, i] += 1e-7j
     '''
+    
 
 
     ### END DEBUG ###

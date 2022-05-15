@@ -14,7 +14,12 @@ class VarState:
         self.U_asmatrix[np.arange(self.H.shape[0] // 2), np.arange(self.H.shape[0] // 2) + self.H.shape[0] // 2] = self.U / 2.
         self.U_asmatrix = self.U_asmatrix + self.U_asmatrix.T
 
+
+        self.trans = opt_config.trans
         self.restore_idempotent_form(set_density = opt_config.density)
+
+
+
 
     def gradient(self, E, h_matrix, o_matrix):
         domega = o_matrix #self.omega_natural_grad(E, h_matrix)
@@ -86,6 +91,19 @@ class VarState:
 
         return kin_energy + pot_energy, h_kin + h_pot, o_der.real
 
+    def apply_translational_symmetry(self, trans, mat):
+        cur_pow = trans
+        mat_result = mat * 0.
+
+        idx = 0
+        while not np.allclose(cur_pow, np.arange(len(cur_pow))):
+            mat_result += mat[cur_pow][:, cur_pow]
+            idx += 1
+
+            cur_pow = cur_pow[trans]
+
+        return mat_result / idx
+
 
     def restore_idempotent_form(self, set_density = None):
         # for an idempotent matrix, in the SVD decomposition V = U^* and singular values are only 0 and 1
@@ -103,8 +121,15 @@ class VarState:
         print('|s - s0|:', np.linalg.norm(s - s0))
 
 
-        self.G = u @ np.diag(s) @ u.conj().T
         self.O = (self.O + self.O.T) / 2.
+        #self.G = self.apply_translational_symmetry(self.trans, self.G)
+        #self.O = self.apply_translational_symmetry(self.trans, self.O)
+
+        self.G = u @ np.diag(s) @ u.conj().T
+        
+
+
+        
 
         print('change G norm', np.linalg.norm(G_before - self.G))
 
