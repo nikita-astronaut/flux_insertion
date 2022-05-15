@@ -61,31 +61,18 @@ print('h', np.allclose(h_matrix, derivatives.get_gamma_num_derivs(PotentialExpec
 for n_iter in range(n_opt):
     energy, h_matrix, o_matrix = state.energy_derivative()
 
-    '''    
     for i in range(opt_config.N_sites * 2):
         for j in range(opt_config.N_sites * 2):
-            state.G[i, j] += 1e-7
-            state.G[j, i] += 1e-7
+            state.O[i, j] += 1e-7
+            state.O[j, i] += 1e-7
 
-            energy_der, _ = state.energy_derivative()
-            print('REAL', h_matrix[i, j].real, (energy_der - energy).real / 1e-7 / 2.)
-
-            state.G[i, j] -= 1e-7
-            state.G[j, i] -= 1e-7
-
-            state.G[i, j] += 1e-7j
-            state.G[j, i] -= 1e-7j
-
-            energy_der, _ = state.energy_derivative()
-            print('IMAG', h_matrix[i, j].imag, -(energy_der - energy).real / 1e-7 / 2.)
-
-            state.G[i, j] -= 1e-7j
-            state.G[j, i] += 1e-7j
+            energy_der, _, _ = state.energy_derivative()
+            print('REAL', o_matrix[i, j].real, (energy_der - energy).real / 1e-7 / 2.)
 
 
     ### END DEBUG ###
     
-    '''
+    
     print('energy = {:.5f} + i ({:.3f})'.format(energy.real, energy.imag))
     grad_G, grad_O = state.gradient(energy, h_matrix, o_matrix)
 
