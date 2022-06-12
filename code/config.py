@@ -33,7 +33,7 @@ class opt_parameters:
         print(np.sum(free_energies[free_energies < 0.]), "FREE ENERGY")
 
         self.n_opt = 100000
-        self.lr = 0.01
+        self.lr = 0.003
         self.U = 1.  # FIXME
         self.density = self.N_sites
 

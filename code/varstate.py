@@ -23,7 +23,7 @@ class VarState:
 
     def gradient(self, E, h_matrix, o_matrix):
         domega = o_matrix #self.omega_natural_grad(E, h_matrix)
-        dGamma = h_matrix # self.Gamma_natural_grad(domega, h_matrix)
+        dGamma = h_matrix# self.Gamma_natural_grad(domega, h_matrix)
 
         return dGamma, domega
 
@@ -39,7 +39,6 @@ class VarState:
 
         d4_id = np.tile(np.eye(2 * S)[np.newaxis, np.newaxis, ...], (2 * S, 2 * S, 1, 1))
         d4_Gamma = np.tile(self.G[np.newaxis, np.newaxis, ...], (2 * S, 2 * S, 1, 1))
-
 
         dets = np.linalg.det(d4_id - d4_Gamma @ (d4_id - Aexp))  # abpq -> ab
 
@@ -60,9 +59,19 @@ class VarState:
 
         Heff_kin = self.H * exp_small * dets * Phis
         #Heff_kin = self.H * exp_small * dets
+
+        #print(kin_energy)
+        assert np.isclose(kin_energy.imag, 0)
+        #exit(-1)
         
 
+        #ssert np.linalg.norm(np.einsum('ab,abxy->xy', Heff_kin, -(d4_id - Aexp) @ invs_det, optimize='optimal').T) == 0
+        #assert np.linalg.norm(np.einsum('ab,abax,abyb->xy', self.H * exp_small * dets, Aexp @ d4_Gamma @ invs @ (d4_id - Aexp), invs, optimize='optimal')) == 0
+
+        #assert np.allclose(np.einsum('ab,abax,abyb->xy', self.H * exp_small * dets, Aexp, invs, optimize='optimal'), self.H)
         #First there should be inverse of the derivative (invs_det instead invs). In second and third terms I corrected the output to
+
+        # FIXME FIXME FIXME FIXME --> remove .T in the middle line
         h_kin = np.einsum('ab,abxy->xy', Heff_kin, -(d4_id - Aexp) @ invs_det, optimize='optimal').T + \
                 np.einsum('ab,abax,abyb->xy', self.H * exp_small * dets, Aexp, invs, optimize='optimal') + \
                 np.einsum('ab,abax,abyb->xy', self.H * exp_small * dets, Aexp @ d4_Gamma @ invs @ (d4_id - Aexp), invs, optimize='optimal')
@@ -89,7 +98,7 @@ class VarState:
                     antisymm, Aexp @ d4_Gamma @ invs, Aexp @ d4_Gamma @ invs)
         
 
-        return kin_energy + pot_energy, h_kin + h_pot, o_der.real
+        return kin_energy + pot_energy, (h_kin + h_pot).conj(), o_der.real
 
     def apply_translational_symmetry(self, trans, mat):
         cur_pow = trans
@@ -128,12 +137,10 @@ class VarState:
         self.G = u @ np.diag(s) @ u.conj().T
         
 
-
-        
-
         print('change G norm', np.linalg.norm(G_before - self.G))
 
         assert np.allclose(self.G, self.G @ self.G)
+        assert np.allclose(self.G, self.G.T.conj())
         return
 
 
