@@ -337,7 +337,9 @@ def VklHkinGS(G, Omega, K):
     Aexp[..., np.arange(2 * S), np.arange(2 * S)] = np.exp(2.0j * alpha)  # abpq
 
     exp_small = np.diagonal(Aexp.conj(), axis1=-1, axis2=-2)
-    exp_small = np.diagonal(exp_small.transpose((2, 0, 1)), axis1=0, axis2=1).T
+    #exp_small = np.diagonal(exp_small.transpose((2, 0, 1)), axis1=0, axis2=1).T
+    # Need to be exp(alpha(a, b)_b) instead of exp(alpha(a, b)_a). See Useful expectation values p.4.
+    exp_small = np.diagonal(exp_small.transpose((2, 1, 0)), axis1=0, axis2=1)
 
     a_vals, b_vals = np.nonzero(K)
 
