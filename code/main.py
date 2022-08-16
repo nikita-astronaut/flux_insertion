@@ -58,6 +58,9 @@ derivatives = Derivatives(state.G,
 print('h', np.allclose(h_matrix, derivatives.get_gamma_num_derivs(PotentialExpectationValue) + derivatives.get_gamma_num_derivs(KineticExpectationValue).T))
 '''
 
+energies_history = []
+
+
 for n_iter in range(n_opt):
     energy, h_matrix, o_matrix = state.energy_derivative()
     print('energy = {:.15f} + i ({:.15f})'.format(energy.real, energy.imag))
@@ -106,5 +109,10 @@ for n_iter in range(n_opt):
     state.G -= lr * grad_G
     state.O -= lr * grad_O
     #state.O *= 0.  # FIXME
-    print(state.O)
+    #print(state.O)
+
+    if n_iter % 10 == 0:
+        energies_history.append(energy.real)
+
+        print(repr(energies_history))
     state.restore_idempotent_form()
